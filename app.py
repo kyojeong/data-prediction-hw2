@@ -162,11 +162,25 @@ if __name__ == "__main__":
         if closeoutput[i]<lowoutput[i]:
             closeoutput[i],lowoutput[i]=change(closeoutput[i],lowoutput[i])
     
+    action=np.zeros(20)
+    action[0]=0
+    min=0
+    max=0
+    for i in range(19):
+        if highoutput[i+1]>highoutput[max]:
+            max=i+1
+        if lowoutput[i+1]<lowoutput[min]:
+            min=i+1
+            
+    action[max]=-1
+    action[min]=1
+    
     frame={
         'open':openoutput,
         'high':highoutput,
         'low':lowoutput,
-        'close':closeoutput
+        'close':closeoutput,
+        'action':action
     }
     
     output=pd.DataFrame(frame)
