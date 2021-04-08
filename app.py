@@ -26,160 +26,57 @@ if __name__ == "__main__":
     testing_data = pd.read_csv(args.testing,squeeze=True) 
     
     
-    p=6
-    d=2
-    q=1
+  
    
     #open
-    train=[x for x in training_data['open'].values]
-    test=testing_data['open'].values  
-    predictions=list()
+    trainhigh=[x for x in training_data['high'].values]
+    testhigh=testing_data['high'].values  
+    trainlow=[x for x in training_data['low'].values]
+    testlow=testing_data['low'].values  
    
-    for t in range(0,len(test),20):
-        model = ARIMA(train, order=(p,d,q))     
-        model_fit = model.fit()        
-        output = model_fit.forecast(20)
+    action=np.zeros(len(testhigh)-1) 
+    slot=0
+    
+    predictions=list()
+    predictions2=list()
+    old=trainhigh[len(trainhigh)-1]
+    old2=trainhigh[len(trainlow)-1]
+    for t in range(len(testhigh)-1):
+        model = ARIMA(trainhigh, order=(3,1,1))     
+        model_fit = model.fit()
+        output = model_fit.forecast(2)
+        yhat = output[0]
+        predictions.append(yhat)
+        if yhat>old and yhat>output[1] and slot!=-1 :
+            action[t]=-1
+            slot=slot-1
+        obs = testhigh[t]
+        old=obs
+        trainhigh.append(obs)
+       #print('high predicted=%f, expected=%f' % (yhat, obs))
         
-        
-        if (t+20)>len(test):
-            yhat=output[0:len(test)-t]
-        else:
-            yhat = output[0:20]
-        for i in range(len(yhat)):
-            predictions.append(yhat[i])
-        obs = test[t:t+20]
-        for i in range(len(obs)):
-            train.append(obs[i])
-        #for i in range(len(yhat)):
-         #   print('predicted=%f, expected=%f' % (yhat[i], obs[i]))
+        model = ARIMA(trainlow, order=(5,1,1))     
+        model_fit = model.fit()
+        output = model_fit.forecast(2)
+        yhat = output[0]
+        predictions2.append(yhat)
+        if yhat<old2 and yhat<output[1] and slot!=1:
+            action[t]=1
+            slot=slot+1
+        obs = testlow[t]
+        old2=obs
+        trainlow.append(obs)
+        #print('low predicted=%f, expected=%f\n' % (yhat, obs))
  
-    
-    error = mean_squared_error(test, predictions)
-    print('open Test MSE: %.3f' % error)
-    
-    
-    
-    model = ARIMA(train, order=(p,d,q)) 
-    model_fit = model.fit()
-    openoutput = model_fit.forecast(20)
-    
-    	
-    
-    #high
-    train=[x for x in training_data['high'].values]
-    test=testing_data['high'].values     
-    predictions=list()
+    error = mean_squared_error(testhigh[:len(testhigh)-1], predictions)
+    print('Test MSE: %.3f' % error)
+    error = mean_squared_error(testlow[:len(testlow)-1], predictions2)
+    print('Test MSE: %.3f' % error)
 
-    for t in range(0,len(test),20):
-        model = ARIMA(train, order=(p,d,q))    
-        model_fit = model.fit()        
-        output = model_fit.forecast(20)
-        if (t+20)>len(test):
-            yhat=output[0:len(test)-t]
-        else:
-            yhat = output[0:20]
-        for i in range(len(yhat)):
-            predictions.append(yhat[i])
-        obs = test[t:t+20]
-        for i in range(len(obs)):
-            train.append(obs[i])
-        #print('%d predicted=%f, expected=%f' % (t,yhat[0], obs[0]))
- 
-    error = mean_squared_error(test, predictions)
-    print('high Test MSE: %.3f' % error)
-      
-    model = ARIMA(train, order=(p,d,q)) 
-    model_fit = model.fit()
-    highoutput = model_fit.forecast(20)        
-    
-    #low
-    train=[x for x in training_data['low'].values]
-    test=testing_data['low'].values     
-    predictions=list()
 
-    for t in range(0,len(test),20):
-        model = ARIMA(train, order=(p,d,q))    
-        model_fit = model.fit()        
-        output = model_fit.forecast(20)
-        if (t+20)>len(test):
-            yhat=output[0:len(test)-t]
-        else:
-            yhat = output[0:20]
-        for i in range(len(yhat)):
-            predictions.append(yhat[i])
-        obs = test[t:t+20]
-        for i in range(len(obs)):
-            train.append(obs[i])
-        #print('%d predicted=%f, expected=%f' % (t,yhat[0], obs[0]))
- 
-    error = mean_squared_error(test, predictions)
-    print('low Test MSE: %.3f' % error)
-      
-    model = ARIMA(train, order=(p,d,q)) 
-    model_fit = model.fit()
-    lowoutput = model_fit.forecast(20)
-    
-    #close
-    train=[x for x in training_data['close'].values]
-    test=testing_data['close'].values     
-    predictions=list()
-
-    for t in range(0,len(test),20):
-        model = ARIMA(train, order=(p,d,q))    
-        model_fit = model.fit()        
-        output = model_fit.forecast(20)
-        if (t+20)>len(test):
-            yhat=output[0:len(test)-t]
-        else:
-            yhat = output[0:20]
-        for i in range(len(yhat)):
-            predictions.append(yhat[i])
-        obs = test[t:t+20]
-        for i in range(len(obs)):
-            train.append(obs[i])
-        #print('%d predicted=%f, expected=%f' % (t,yhat[0], obs[0]))
- 
-    error = mean_squared_error(test, predictions)
-    print('close Test MSE: %.3f' % error)
-      
-    model = ARIMA(train, order=(p,d,q)) 
-    model_fit = model.fit()
-    closeoutput = model_fit.forecast(20)
-    
-    def change(a,b):
-        t=a
-        a=b
-        b=t
-        return a,b
-    
-    for i in range(20):
-        if openoutput[i]>highoutput[i]:
-            openoutput[i],highoutput[i]=change(openoutput[i],highoutput[i])
-        if closeoutput[i]>highoutput[i]:
-            closeoutput[i],highoutput[i]=change(closeoutput[i],highoutput[i])
-        if openoutput[i]<lowoutput[i]:
-            openoutput[i],lowhoutput[i]=change(openoutput[i],lowoutput[i])
-        if closeoutput[i]<lowoutput[i]:
-            closeoutput[i],lowoutput[i]=change(closeoutput[i],lowoutput[i])
-    
-    action=np.zeros(20)
-    action[0]=0
-    min=0
-    max=0
-    for i in range(19):
-        if highoutput[i+1]>highoutput[max]:
-            max=i+1
-        if lowoutput[i+1]<lowoutput[min]:
-            min=i+1
-            
-    action[max]=-1
-    action[min]=1
     
     frame={
-        'open':openoutput,
-        'high':highoutput,
-        'low':lowoutput,
-        'close':closeoutput,
+        
         'action':action
     }
     
